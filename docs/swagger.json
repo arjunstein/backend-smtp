@@ -5,7 +5,7 @@
     ],
     "swagger": "2.0",
     "info": {
-        "description": "Provide 'Bearer \u003cAPI_KEY\u003e' or raw API Key configured in .env",
+        "description": "Production-grade centralized SMTP agent and email sending engine.",
         "title": "Centralized SMTP Email Sender Service",
         "contact": {},
         "version": "1.0"

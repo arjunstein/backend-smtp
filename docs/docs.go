@@ -1007,7 +1007,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/",
 	Schemes:          []string{"http", "https"},
 	Title:            "Centralized SMTP Email Sender Service",
-	Description:      "Provide 'Bearer <API_KEY>' or raw API Key configured in .env",
+	Description:      "Production-grade centralized SMTP agent and email sending engine.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 }

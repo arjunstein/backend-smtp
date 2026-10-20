@@ -36,12 +36,10 @@ import (
 // @securityDefinitions.apikey ApiKeyAuth
 // @in header
 // @name X-API-Key
-// @description Provide secret API Key configured in .env
 
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
-// @description Provide 'Bearer <API_KEY>' or raw API Key configured in .env
 
 // @tag.name Health
 // @tag.description Service health and readiness operations

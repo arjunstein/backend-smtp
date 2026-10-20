@@ -268,7 +268,7 @@ definitions:
     type: object
 info:
   contact: {}
-  description: Provide 'Bearer <API_KEY>' or raw API Key configured in .env
+  description: Production-grade centralized SMTP agent and email sending engine.
   title: Centralized SMTP Email Sender Service
   version: "1.0"
 paths:
