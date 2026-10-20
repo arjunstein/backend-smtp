@@ -132,77 +132,6 @@ info:
   title: Centralized SMTP Email Sender Service
   version: "1.0"
 paths:
-  /api/v1/emails/logs:
-    get:
-      description: Returns paginated history of email dispatches
-      parameters:
-      - default: 20
-        description: Items per page (max 100)
-        in: query
-        name: limit
-        type: integer
-      - default: 0
-        description: Item offset
-        in: query
-        name: offset
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Email audit logs
-          schema:
-            $ref: '#/definitions/response.APIResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/response.APIResponse'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/response.APIResponse'
-      security:
-      - ApiKeyAuth: []
-      summary: List email delivery audit logs
-      tags:
-      - Emails
-  /api/v1/emails/logs/{id}:
-    get:
-      description: Returns audit log details for a single email dispatch
-      parameters:
-      - description: Email Log ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Email log details
-          schema:
-            $ref: '#/definitions/response.APIResponse'
-        "400":
-          description: Invalid ID format
-          schema:
-            $ref: '#/definitions/response.APIResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/response.APIResponse'
-        "404":
-          description: Log not found
-          schema:
-            $ref: '#/definitions/response.APIResponse'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/response.APIResponse'
-      security:
-      - ApiKeyAuth: []
-      summary: Get email delivery audit log by ID
-      tags:
-      - Emails
   /api/v1/emails/send:
     post:
       consumes:
@@ -534,5 +463,5 @@ tags:
   name: Health
 - description: Management and testing of SMTP server configurations
   name: SMTP Config
-- description: Centralized email dispatch and audit log inspection
+- description: Centralized email dispatch endpoint
   name: Emails

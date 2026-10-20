@@ -4,231 +4,231 @@
 [![Router](https://img.shields.io/badge/router-Chi%20v5-green.svg)](https://github.com/go-chi/chi)
 [![ORM](https://img.shields.io/badge/orm-GORM-orange.svg)](https://gorm.io)
 
-Layanan backend terpusat untuk manajemen konfigurasi SMTP dan pengiriman email multi-tenant/multi-service. Bertindak sebagai centralized email sender agent dengan arsitektur bersih (Clean Architecture) mengikuti konvensi repositori `gymmaster-api`.
+A production-grade centralized backend service for managing SMTP configurations and dispatching outgoing emails across multi-tenant applications and microservices. Acts as a centralized email dispatch agent designed with Clean Architecture principles.
 
 ---
 
-## 🚀 Fitur Utama
+## 🚀 Key Features
 
-- **Clean Architecture & Separation of Concerns**: Terbagi jelas antara Handler, Service, Repository, Model, dan Package.
-- **Go Chi Router v5**: Router ringan, composable, dan berbasis standard library `net/http`.
-- **CRUD Konfigurasi SMTP**:
-  - Pendaftaran multi-akun SMTP (Gmail, Mailtrap, SES, Sendgrid, Postfix, dll).
-  - Masking otomatis kredensial/password pada respon API.
-  - Pengaturan konfigurasi *Default* sistem dengan transaksi database atomik.
-  - Endpoint uji koneksi/ping SMTP (`POST /api/v1/smtp-configs/{id}/test`).
-- **Endpoint Konsumsi Pengiriman Terpusat (`POST /api/v1/emails/send`)**:
-  - Konsumsi oleh berbagai microservice / aplikasi client lain.
-  - Auto-fallback ke active default SMTP config jika ID konfigurasi tidak ditentukan.
-  - Dukungan pesan Plain Text dan Rich HTML.
-  - Dukungan lampiran dokumen / file (Attachment) berbasis Base64.
-- **Engine Mailer Mandiri**:
-  - Dukungan protokol `STARTTLS` (port 587), `SSL/TLS` (port 465), dan `Plain` (port 25).
-  - Pembangunan pesan RFC 5322 MIME dengan `multipart/alternative` dan `multipart/mixed`.
-- **Audit Logging**: Setiap pengiriman email tercatat otomatis ke tabel `email_logs` (status `SUCCESS`/`FAILED`, penerima, subjek, timestamp, dan detail error jika gagal).
-- **Keamanan & Middleware**:
-  - Otentikasi `X-API-Key`.
-  - Request logging terstruktur (`[HTTP] status | latency | ip | method path`).
-  - CORS Middleware.
-  - Panic recoverer.
-- **Dokumentasi Swagger OpenAPI**: Terintegrasi pada `/documentation/index.html`.
+- **Clean Architecture & Separation of Concerns**: Strictly divided into Handler, Service, Repository, Model, and Package layers.
+- **Go Chi Router v5**: Lightweight, composable, and 100% compliant with the standard Go `net/http` package.
+- **SMTP Configuration Management (Single `smtp_configs` Table)**:
+  - Register multiple SMTP accounts (Gmail, Mailtrap, Amazon SES, SendGrid, Postfix, Zimbra, etc.).
+  - Automatic credential and password masking in all API responses.
+  - Atomic transactional default toggling (`is_default = true`) ensuring only one active default configuration system-wide.
+  - Active connection test endpoint (`POST /api/v1/smtp-configs/{id}/test`) for pinging and validating credentials without sending an email.
+- **Centralized Email Dispatch Endpoint (`POST /api/v1/emails/send`)**:
+  - Unified endpoint consumed by external microservices and client applications.
+  - Automatic fallback to the active default SMTP configuration when `smtp_config_id` is omitted.
+  - Support for both Plain Text and Rich HTML content.
+  - Support for Base64-encoded file attachments.
+- **Independent SMTP Engine**:
+  - Native Go implementation supporting `STARTTLS` (port 587), `SSL/TLS` (port 465), and `Plain` (port 25).
+  - RFC 5322 compliant MIME builder supporting `multipart/alternative` and `multipart/mixed`.
+- **Cloud-Native Structured Observability (`log/slog`)**:
+  - Real-time JSON structured logging to `stdout` (`event=email_dispatch`, `status=SUCCESS/FAILED`, duration, recipients, subject, error details).
+  - Eliminates database table bloat and write lock contention.
+- **Security & Middleware**:
+  - Strict `X-API-Key` authentication.
+  - Structured HTTP request logger (`[HTTP] status | latency | ip | method path`).
+  - Cross-Origin Resource Sharing (CORS) middleware.
+  - Panic recovery middleware.
+- **Interactive Swagger Documentation**: Integrated at `/documentation/index.html`.
 
 ---
 
-## 📂 Struktur Proyek
+## 📂 Project Structure
 
 ```
 backend-smtp/
 ├── cmd/
 │   └── api/
-│       └── main.go                 # Inisialisasi aplikasi, Chi router, & graceful shutdown
+│       └── main.go                 # Application bootstrap, Chi router, & graceful shutdown
 ├── internal/
 │   ├── config/
-│   │   └── config.go               # Pemanggilan environment variables & DSN MySQL
+│   │   └── config.go               # Environment configuration loader (.env) & MySQL DSN
 │   ├── handler/
-│   │   ├── health_handler.go       # Health check handler
-│   │   ├── smtp_config_handler.go  # Handler CRUD & test SMTP
-│   │   └── email_handler.go        # Handler pengiriman email & log audit
+│   │   ├── health_handler.go       # Health check HTTP handler
+│   │   ├── smtp_config_handler.go  # SMTP Config CRUD & test connection handler
+│   │   └── email_handler.go        # Centralized email dispatch HTTP handler
 │   ├── middleware/
-│   │   ├── auth.go                 # X-API-Key auth middleware
-│   │   ├── cors.go                 # CORS middleware
-│   │   └── logger.go               # Structured HTTP logging middleware
+│   │   ├── auth.go                 # X-API-Key authentication middleware
+│   │   ├── cors.go                 # CORS configuration middleware
+│   │   └── logger.go               # Structured HTTP request logging middleware
 │   ├── model/
-│   │   ├── smtp_config.go          # GORM model konfigurasi SMTP
-│   │   ├── email_log.go            # GORM model audit pengiriman email
-│   │   └── dto.go                  # Data Transfer Objects & validasi payload
+│   │   ├── smtp_config.go          # GORM SMTPConfig entity (smtp_configs table)
+│   │   └── dto.go                  # Data Transfer Objects (DTOs) & input validation
 │   ├── repository/
-│   │   ├── smtp_config_repo.go     # Query database SMTPConfig (GORM)
-│   │   └── email_log_repo.go       # Query database EmailLog (GORM)
+│   │   └── smtp_config_repo.go     # GORM database queries & transactions
 │   └── service/
-│       ├── smtp_config_service.go  # Logika bisnis konfigurasi SMTP
-│       ├── email_service.go        # Logika pengiriman & pencatatan log
+│       ├── smtp_config_service.go  # SMTP configuration business logic
+│       ├── email_service.go        # Dispatch orchestration & structured stdout logging (slog)
 │       └── mailer/
-│           ├── mailer.go           # Engine SMTP client (STARTTLS, SSL/TLS, Plain, MIME)
-│           └── mailer_test.go      # Unit test MIME builder
+│           ├── mailer.go           # Native SMTP client engine (STARTTLS, SSL/TLS, Plain, MIME)
+│           └── mailer_test.go      # MIME builder unit tests
 ├── pkg/
 │   └── response/
-│       ├── response.go             # Helper format respon standar Chi (net/http)
-│       └── response_test.go        # Unit test format respon
-├── docs/                           # Swagger OpenAPI spec (swagger.json, docs.go)
-├── .env.example                    # Template environment variables
+│       ├── response.go             # Standardized API response helpers for Chi (net/http)
+│       └── response_test.go        # Response helper unit tests
+├── docs/                           # Swagger OpenAPI 2.0 specs (swagger.json, docs.go)
+├── .env.example                    # Sample environment variables
 ├── .gitignore
-├── AGENTS.md                       # Panduan arsitektur & konvensi agen
-├── Makefile                        # Perintah build, test, & run
+├── AGENTS.md                       # AI coding agent & development guidelines
+├── Makefile                        # Build, test, and development scripts
 └── README.md
 ```
 
 ---
 
-## 🛠️ Persyaratan Sistem
+## 🛠️ Prerequisites
 
-- **Go**: 1.25 atau lebih baru
-- **MySQL**: 8.0 atau lebih baru
+- **Go**: 1.25 or higher
+- **MySQL**: 8.0 or higher
 
 ---
 
-## ⚙️ Konfigurasi Environment (`.env`)
+## ⚙️ Environment Configuration (`.env`)
 
-Salin file `.env.example` ke `.env`:
+Copy the sample environment file `.env.example` to `.env`:
 
 ```bash
 cp .env.example .env
 ```
 
-Isi variabel sesuai konfigurasi server dan MySQL Anda:
+Update the variables to match your server and MySQL configuration:
 
 ```env
-SERVER_PORT=8080
-API_KEY=my-super-secret-key
+# Server Configuration
+SERVER_PORT=8082
+API_KEY=your-secret-api-key-here
 
+# Database Configuration (MySQL)
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_USER=root
-DB_PASSWORD=
+DB_PASSWORD=your_database_password
 DB_NAME=smtp_service
 DB_MAX_OPEN_CONNS=25
 DB_MAX_IDLE_CONNS=5
 DB_CONN_MAX_LIFETIME_MINUTES=5
 ```
 
+> **Note**: If `API_KEY` is left blank, API authentication is bypassed for local development convenience.
+
 ---
 
-## 🚀 Menjalankan Aplikasi
+## 🚀 Running the Application
 
 ```bash
-# 1. Jalankan unit test
+# 1. Run automated unit tests with race detection
 make test
 
-# 2. Kompilasi binary
+# 2. Build the binary executable
 make build
 
-# 3. Jalankan server
+# 3. Start the application
 make run
-# atau langsung jalankan binary yang sudah di-compile:
+# or run the compiled binary directly:
 ./bin/backend-smtp
 ```
 
-Aplikasi akan otomatis melakukan migrasi tabel (`smtp_configs`, `email_logs`) saat pertama kali dijalankan.
+The application automatically executes database schema migrations for `smtp_configs` on startup.
 
 ---
 
-## 📖 Dokumentasi API (Swagger)
+## 📖 Swagger API Documentation
 
-Akses dokumentasi interaktif Swagger melalui browser di:
+Open the interactive Swagger UI in your browser:
 ```
-http://localhost:8080/documentation/index.html
+http://localhost:8082/documentation/index.html
 ```
 
 ---
 
-## 📡 Daftar Endpoint API
+## 📡 API Endpoints Reference
 
-Semua endpoint `/api/v1` (kecuali `/health`) membutuhkan header `X-API-Key: <API_KEY>` jika diatur di `.env`.
+All `/api/v1` endpoints (except public `/health`) require the `X-API-Key: <API_KEY>` HTTP header when configured.
 
-| Method | Endpoint | Deskripsi |
+| Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/health` / `/api/v1/health` | Health check layanan |
-| `POST` | `/api/v1/smtp-configs` | Tambah konfigurasi SMTP baru |
-| `GET` | `/api/v1/smtp-configs` | Ambil daftar semua konfigurasi SMTP |
-| `GET` | `/api/v1/smtp-configs/{id}` | Ambil detail satu konfigurasi SMTP |
-| `PUT` | `/api/v1/smtp-configs/{id}` | Update konfigurasi SMTP |
-| `DELETE` | `/api/v1/smtp-configs/{id}` | Hapus konfigurasi SMTP |
-| `PUT` | `/api/v1/smtp-configs/{id}/default` | Setel konfigurasi sebagai default sistem |
-| `POST` | `/api/v1/smtp-configs/{id}/test` | Tes koneksi & otentikasi SMTP |
-| `POST` | `/api/v1/emails/send` | **Endpoint Utama Pengiriman Email Terpusat** |
-| `GET` | `/api/v1/emails/logs` | Ambil riwayat / log audit pengiriman email |
-| `GET` | `/api/v1/emails/logs/{id}` | Ambil detail satu record log pengiriman |
+| `GET` | `/health` / `/api/v1/health` | Service health and uptime check |
+| `POST` | `/api/v1/smtp-configs` | Create a new SMTP configuration |
+| `GET` | `/api/v1/smtp-configs` | List all SMTP configurations (passwords masked) |
+| `GET` | `/api/v1/smtp-configs/{id}` | Get specific SMTP configuration by ID |
+| `PUT` | `/api/v1/smtp-configs/{id}` | Update SMTP configuration fields |
+| `DELETE` | `/api/v1/smtp-configs/{id}` | Delete an SMTP configuration |
+| `PUT` | `/api/v1/smtp-configs/{id}/default` | Set an SMTP configuration as active system default |
+| `POST` | `/api/v1/smtp-configs/{id}/test` | Test SMTP server connection & authentication (ping) |
+| `POST` | `/api/v1/emails/send` | **Centralized email dispatch endpoint** |
 
 ---
 
-## 💡 Contoh Penggunaan (cURL)
+## 💡 Usage Examples (cURL)
 
-### 1. Menambahkan Konfigurasi SMTP
+### 1. Create New SMTP Configuration
 ```bash
-curl -X POST http://localhost:8080/api/v1/smtp-configs \
+curl -X POST http://localhost:8082/api/v1/smtp-configs \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: my-super-secret-key" \
+  -H "X-API-Key: your-secret-api-key-here" \
   -d '{
-    "name": "Gmail Notifikasi",
-    "host": "smtp.gmail.com",
+    "name": "Transactional Mailer",
+    "host": "smtp.example.com",
     "port": 587,
-    "username": "notifikasi@example.com",
-    "password": "app-password-rahasia",
-    "from_email": "notifikasi@example.com",
-    "from_name": "Sistem Notifikasi",
+    "username": "no-reply@example.com",
+    "password": "your-app-password",
+    "from_email": "no-reply@example.com",
+    "from_name": "Notification System",
     "encryption": "STARTTLS",
     "is_active": true,
     "is_default": true
   }'
 ```
 
-### 2. Menguji Koneksi SMTP
+### 2. Test SMTP Connection
 ```bash
-curl -X POST http://localhost:8080/api/v1/smtp-configs/1/test \
-  -H "X-API-Key: my-super-secret-key"
+curl -X POST http://localhost:8082/api/v1/smtp-configs/1/test \
+  -H "X-API-Key: your-secret-api-key-here"
 ```
 
-### 3. Mengirimkan Email (Dikonsumsi oleh Sistem Lain)
-Endpoint ini dapat dipanggil tanpa `smtp_config_id` untuk otomatis memakai SMTP default:
+### 3. Send Email (Centralized Consumption)
+Omit `smtp_config_id` to automatically use the active default SMTP configuration:
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/emails/send \
+curl -X POST http://localhost:8082/api/v1/emails/send \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: my-super-secret-key" \
+  -H "X-API-Key: your-secret-api-key-here" \
   -d '{
     "to": ["user@example.com"],
-    "cc": ["supervisor@example.com"],
-    "subject": "Kode Verifikasi Akun Anda",
-    "body": "<h1>Halo!</h1><p>Kode verifikasi Anda adalah <b>827103</b>.</p>",
+    "cc": ["manager@example.com"],
+    "subject": "Your Verification Code",
+    "body": "<h1>Welcome!</h1><p>Your one-time verification code is <b>827103</b>.</p>",
     "is_html": true
   }'
 ```
 
-Jika ingin menggunakan konfigurasi SMTP tertentu:
+To route through a specific SMTP configuration:
 ```bash
-curl -X POST http://localhost:8080/api/v1/emails/send \
+curl -X POST http://localhost:8082/api/v1/emails/send \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: my-super-secret-key" \
+  -H "X-API-Key: your-secret-api-key-here" \
   -d '{
     "smtp_config_id": 2,
     "to": ["client@example.com"],
-    "subject": "Faktur Tagihan",
-    "body": "Terlampir faktur tagihan bulan ini.",
+    "subject": "Monthly Statement",
+    "body": "Please find your monthly statement attached.",
     "is_html": false
   }'
 ```
 
-### 4. Melihat Riwayat Log Pengiriman
-```bash
-curl -X GET "http://localhost:8080/api/v1/emails/logs?limit=10&offset=0" \
-  -H "X-API-Key: my-super-secret-key"
-```
-
 ---
 
-## 🧪 Pengujian Unit
+## 🧪 Testing & Makefile Commands
 
-Jalankan seluruh test suite dengan race detector:
 ```bash
-make test
+make test      # Run all unit tests with race detection
+make build     # Compile the application binary to bin/backend-smtp
+make run       # Run the application locally
+make swagger   # Regenerate Swagger OpenAPI documentation
+make tidy      # Clean up go.mod and go.sum dependencies
+make clean     # Remove compiled binaries
 ```

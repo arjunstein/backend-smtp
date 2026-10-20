@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -17,28 +18,23 @@ var (
 	ErrSMTPConfigInactive = errors.New("specified SMTP configuration is inactive")
 )
 
-// EmailService defines operations for central email sending and log retrieval.
+// EmailService defines operations for central email sending.
 type EmailService interface {
 	SendEmail(ctx context.Context, req *model.SendEmailRequest) (*model.SendEmailResponse, error)
-	GetEmailLogs(ctx context.Context, limit int, offset int) ([]model.EmailLog, int64, error)
-	GetEmailLogByID(ctx context.Context, id uint) (*model.EmailLog, error)
 }
 
 type emailService struct {
 	smtpRepo repository.SMTPConfigRepository
-	logRepo  repository.EmailLogRepository
 	mailer   mailer.Mailer
 }
 
 // NewEmailService instantiates EmailService.
 func NewEmailService(
 	smtpRepo repository.SMTPConfigRepository,
-	logRepo repository.EmailLogRepository,
 	mailer mailer.Mailer,
 ) EmailService {
 	return &emailService{
 		smtpRepo: smtpRepo,
-		logRepo:  logRepo,
 		mailer:   mailer,
 	}
 }
@@ -47,6 +43,8 @@ func (s *emailService) SendEmail(ctx context.Context, req *model.SendEmailReques
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
+
+	startTime := time.Now()
 
 	// 1. Resolve SMTP Configuration
 	var (
@@ -69,45 +67,40 @@ func (s *emailService) SendEmail(ctx context.Context, req *model.SendEmailReques
 		}
 	}
 
-	// 2. Prepare Audit Log
-	emailLog := &model.EmailLog{
-		SMTPConfigID: &cfg.ID,
-		To:           strings.Join(req.To, ", "),
-		CC:           strings.Join(req.CC, ", "),
-		BCC:          strings.Join(req.BCC, ", "),
-		Subject:      req.Subject,
-		SentAt:       time.Now(),
-	}
-
-	// 3. Dispatch Email via Mailer
+	// 2. Dispatch Email via Mailer
 	sendErr := s.mailer.Send(cfg, req)
+	duration := time.Since(startTime)
+
 	if sendErr != nil {
-		emailLog.Status = model.EmailStatusFailed
-		emailLog.ErrorMessage = sendErr.Error()
-		_ = s.logRepo.Create(ctx, emailLog)
+		slog.ErrorContext(ctx, "email delivery failed",
+			slog.String("event", "email_dispatch"),
+			slog.String("status", "FAILED"),
+			slog.Uint64("smtp_config_id", uint64(cfg.ID)),
+			slog.String("smtp_name", cfg.Name),
+			slog.String("recipients", strings.Join(req.To, ", ")),
+			slog.String("subject", req.Subject),
+			slog.Duration("duration", duration),
+			slog.String("error", sendErr.Error()),
+		)
 		return nil, fmt.Errorf("failed to transmit email: %w", sendErr)
 	}
 
-	emailLog.Status = model.EmailStatusSuccess
-	if err := s.logRepo.Create(ctx, emailLog); err != nil {
-		// Log failed to persist audit record, but email was successfully sent
-		// Don't fail the client request, but note in logs
-	}
+	slog.InfoContext(ctx, "email dispatched successfully",
+		slog.String("event", "email_dispatch"),
+		slog.String("status", "SUCCESS"),
+		slog.Uint64("smtp_config_id", uint64(cfg.ID)),
+		slog.String("smtp_name", cfg.Name),
+		slog.String("recipients", strings.Join(req.To, ", ")),
+		slog.String("subject", req.Subject),
+		slog.Duration("duration", duration),
+	)
 
 	return &model.SendEmailResponse{
-		Status:       model.EmailStatusSuccess,
+		Status:       "SUCCESS",
 		SMTPConfigID: cfg.ID,
 		SMTPName:     cfg.Name,
 		Recipients:   req.To,
 		Subject:      req.Subject,
-		SentAt:       emailLog.SentAt,
+		SentAt:       time.Now(),
 	}, nil
-}
-
-func (s *emailService) GetEmailLogs(ctx context.Context, limit int, offset int) ([]model.EmailLog, int64, error) {
-	return s.logRepo.FindAll(ctx, limit, offset)
-}
-
-func (s *emailService) GetEmailLogByID(ctx context.Context, id uint) (*model.EmailLog, error) {
-	return s.logRepo.FindByID(ctx, id)
 }

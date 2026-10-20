@@ -16,117 +16,6 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/v1/emails/logs": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Returns paginated history of email dispatches",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Emails"
-                ],
-                "summary": "List email delivery audit logs",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "default": 20,
-                        "description": "Items per page (max 100)",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 0,
-                        "description": "Item offset",
-                        "name": "offset",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Email audit logs",
-                        "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/emails/logs/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Returns audit log details for a single email dispatch",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Emails"
-                ],
-                "summary": "Get email delivery audit log by ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Email Log ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Email log details",
-                        "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid ID format",
-                        "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Log not found",
-                        "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/emails/send": {
             "post": {
                 "security": [
@@ -818,7 +707,7 @@ const docTemplate = `{
             "name": "SMTP Config"
         },
         {
-            "description": "Centralized email dispatch and audit log inspection",
+            "description": "Centralized email dispatch endpoint",
             "name": "Emails"
         }
     ]

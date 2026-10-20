@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -44,9 +45,15 @@ import (
 // @tag.description Management and testing of SMTP server configurations
 
 // @tag.name Emails
-// @tag.description Centralized email dispatch and audit log inspection
+// @tag.description Centralized email dispatch endpoint
 
 func main() {
+	// Configure structured JSON logging to stdout for cloud-native observability
+	jsonHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	})
+	slog.SetDefault(slog.New(jsonHandler))
+
 	// 1. Load configuration
 	cfg := config.Load()
 
@@ -67,9 +74,9 @@ func main() {
 	sqlDB.SetMaxIdleConns(cfg.DBMaxIdleConns)
 	sqlDB.SetConnMaxLifetime(cfg.DBConnMaxLifetime)
 
-	// Run auto migrations
+	// Run auto migrations for smtp_configs
 	log.Println("[Database] Executing database auto-migrations...")
-	if err := db.AutoMigrate(&model.SMTPConfig{}, &model.EmailLog{}); err != nil {
+	if err := db.AutoMigrate(&model.SMTPConfig{}); err != nil {
 		log.Fatalf("[Database] Migration failure: %v", err)
 	}
 	log.Println("[Database] Auto-migrations applied successfully.")
@@ -77,10 +84,9 @@ func main() {
 	// 3. Initialize Clean Architecture components
 	mailerEngine := mailer.NewMailer()
 	smtpRepo := repository.NewSMTPConfigRepository(db)
-	emailLogRepo := repository.NewEmailLogRepository(db)
 
 	smtpService := service.NewSMTPConfigService(smtpRepo, mailerEngine)
-	emailService := service.NewEmailService(smtpRepo, emailLogRepo, mailerEngine)
+	emailService := service.NewEmailService(smtpRepo, mailerEngine)
 
 	healthHandler := handler.NewHealthHandler()
 	smtpConfigHandler := handler.NewSMTPConfigHandler(smtpService)
@@ -123,11 +129,9 @@ func main() {
 			r.Post("/{id}/test", smtpConfigHandler.TestConnection)
 		})
 
-		// Centralized Email sending & audit log endpoints
+		// Centralized Email sending endpoint
 		r.Route("/emails", func(r chi.Router) {
 			r.Post("/send", emailHandler.Send)
-			r.Get("/logs", emailHandler.ListLogs)
-			r.Get("/logs/{id}", emailHandler.GetLogByID)
 		})
 	})
 
