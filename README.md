@@ -48,19 +48,23 @@ backend-smtp/
 │   ├── config/
 │   │   └── config.go               # Environment configuration loader (.env) & MySQL DSN
 │   ├── handler/
+│   │   ├── auth_handler.go         # User registration, login, and profile HTTP handler
 │   │   ├── health_handler.go       # Health check HTTP handler
 │   │   ├── smtp_config_handler.go  # SMTP Config CRUD & test connection handler
 │   │   └── email_handler.go        # Centralized email dispatch HTTP handler
 │   ├── middleware/
-│   │   ├── auth.go                 # X-API-Key authentication middleware
+│   │   ├── auth.go                 # API Key & JWT Bearer authentication middleware
 │   │   ├── cors.go                 # CORS configuration middleware
 │   │   └── logger.go               # Structured HTTP request logging middleware
 │   ├── model/
+│   │   ├── user.go                 # GORM User entity (users table)
 │   │   ├── smtp_config.go          # GORM SMTPConfig entity (smtp_configs table)
 │   │   └── dto.go                  # Data Transfer Objects (DTOs) & input validation
 │   ├── repository/
+│   │   ├── user_repo.go            # User database queries
 │   │   └── smtp_config_repo.go     # GORM database queries & transactions
 │   └── service/
+│       ├── auth_service.go         # JWT token management & bcrypt password hashing
 │       ├── smtp_config_service.go  # SMTP configuration business logic
 │       ├── email_service.go        # Dispatch orchestration & structured stdout logging (slog)
 │       └── mailer/
@@ -147,19 +151,26 @@ http://localhost:8082/documentation/index.html
 
 ## 📡 API Endpoints Reference
 
-All `/api/v1` endpoints (except public `/health`) require the `X-API-Key: <API_KEY>` HTTP header when configured.
+Public endpoints (`/health`, `/api/v1/auth/login`, `/api/v1/auth/refresh`) require no pre-existing session.
+Protected management endpoints support **dual authentication**:
+- **Dynamic JWT Bearer Token**: `Authorization: Bearer <ACCESS_TOKEN>` (short-lived access tokens for dashboard frontend users)
+- **API Key**: `X-API-Key: <API_KEY>` or `Authorization: Bearer <API_KEY>` (for backend microservices)
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/health` | Service health and uptime check |
-| `POST` | `/api/v1/smtp-configs` | Create a new SMTP configuration |
-| `GET` | `/api/v1/smtp-configs` | List all SMTP configurations (passwords masked) |
-| `GET` | `/api/v1/smtp-configs/{id}` | Get specific SMTP configuration by ID |
-| `PUT` | `/api/v1/smtp-configs/{id}` | Update SMTP configuration fields |
-| `DELETE` | `/api/v1/smtp-configs/{id}` | Delete an SMTP configuration |
-| `PUT` | `/api/v1/smtp-configs/{id}/default` | Set an SMTP configuration as active system default |
-| `POST` | `/api/v1/smtp-configs/{id}/test` | Test SMTP server connection & authentication (ping) |
-| `POST` | `/api/v1/emails/send` | **Centralized email dispatch endpoint** |
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `GET` | `/health` | Public | Service health and uptime check |
+| `POST` | `/api/v1/auth/login` | Public | Authenticate user & get dynamic Access + Refresh token pair |
+| `POST` | `/api/v1/auth/refresh` | Public | Refresh expired access token using refresh token (rotation) |
+| `GET` | `/api/v1/auth/me` | JWT | Get current authenticated user profile |
+| `POST` | `/api/v1/smtp-configs` | JWT / API Key | Create a new SMTP configuration |
+| `GET` | `/api/v1/smtp-configs` | JWT / API Key | List all SMTP configurations (passwords masked) |
+| `GET` | `/api/v1/smtp-configs/{id}` | JWT / API Key | Get specific SMTP configuration by ID |
+| `PUT` | `/api/v1/smtp-configs/{id}` | JWT / API Key | Update SMTP configuration fields |
+| `DELETE` | `/api/v1/smtp-configs/{id}` | JWT / API Key | Delete an SMTP configuration |
+| `PUT` | `/api/v1/smtp-configs/{id}/default` | JWT / API Key | Set an SMTP configuration as active system default |
+| `POST` | `/api/v1/smtp-configs/{id}/test` | JWT / API Key | Test SMTP server connection & authentication (ping) |
+| `POST` | `/api/v1/emails/send` | JWT / API Key | **Centralized email dispatch endpoint** |
+
 
 ---
 

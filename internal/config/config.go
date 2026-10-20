@@ -14,14 +14,21 @@ import (
 type Config struct {
 	ServerPort        string
 	APIKey            string
-	DBHost            string
-	DBPort            string
-	DBUser            string
-	DBPassword        string
-	DBName            string
-	DBMaxOpenConns    int
-	DBMaxIdleConns    int
-	DBConnMaxLifetime time.Duration
+	JWTSecret                  string
+	JWTAccessExpirationMinutes int
+	JWTRefreshExpirationDays   int
+	AdminName                  string
+	AdminUsername              string
+	AdminEmail                 string
+	AdminPassword              string
+	DBHost                     string
+	DBPort                     string
+	DBUser                     string
+	DBPassword                 string
+	DBName                     string
+	DBMaxOpenConns             int
+	DBMaxIdleConns             int
+	DBConnMaxLifetime          time.Duration
 }
 
 // Load reads configuration from .env and environment variables.
@@ -31,16 +38,23 @@ func Load() *Config {
 	}
 
 	return &Config{
-		ServerPort:        getEnv("SERVER_PORT", "8080"),
-		APIKey:            getEnv("API_KEY", ""),
-		DBHost:            getEnv("DB_HOST", "127.0.0.1"),
-		DBPort:            getEnv("DB_PORT", "3306"),
-		DBUser:            getEnv("DB_USER", "root"),
-		DBPassword:        getEnv("DB_PASSWORD", ""),
-		DBName:            getEnv("DB_NAME", "smtp_service"),
-		DBMaxOpenConns:    getEnvAsInt("DB_MAX_OPEN_CONNS", 25),
-		DBMaxIdleConns:    getEnvAsInt("DB_MAX_IDLE_CONNS", 5),
-		DBConnMaxLifetime: time.Duration(getEnvAsInt("DB_CONN_MAX_LIFETIME_MINUTES", 5)) * time.Minute,
+		ServerPort:                 getEnv("SERVER_PORT", "8080"),
+		APIKey:                     getEnv("API_KEY", ""),
+		JWTSecret:                  getEnv("JWT_SECRET", "backend-smtp-jwt-secret-key-super-secure-2026"),
+		JWTAccessExpirationMinutes: getEnvAsInt("JWT_ACCESS_EXPIRATION_MINUTES", 60),
+		JWTRefreshExpirationDays:   getEnvAsInt("JWT_REFRESH_EXPIRATION_DAYS", 7),
+		AdminName:                  getEnv("ADMIN_NAME", "Admin"),
+		AdminUsername:              getEnv("ADMIN_USERNAME", "admin"),
+		AdminEmail:                 getEnv("ADMIN_EMAIL", "admin@example.com"),
+		AdminPassword:              getEnv("ADMIN_PASSWORD", "password123"),
+		DBHost:                     getEnv("DB_HOST", "127.0.0.1"),
+		DBPort:                     getEnv("DB_PORT", "3306"),
+		DBUser:                     getEnv("DB_USER", "root"),
+		DBPassword:                 getEnv("DB_PASSWORD", ""),
+		DBName:                     getEnv("DB_NAME", "smtp_service"),
+		DBMaxOpenConns:             getEnvAsInt("DB_MAX_OPEN_CONNS", 25),
+		DBMaxIdleConns:             getEnvAsInt("DB_MAX_IDLE_CONNS", 5),
+		DBConnMaxLifetime:          time.Duration(getEnvAsInt("DB_CONN_MAX_LIFETIME_MINUTES", 5)) * time.Minute,
 	}
 }
 

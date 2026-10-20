@@ -18,13 +18,13 @@ Code is strictly organized by concerns. Do not bypass layers:
 ```
 cmd/api/main.go            # Dependency injection, Chi router, server lifecycle & graceful shutdown
 ├── internal/
-│   ├── config/            # Environment variable loading & validation (.env, DSN)
-│   ├── handler/           # HTTP transport, JSON unmarshaling, Swagger annotations, response rendering
-│   ├── middleware/        # Request logging, CORS, strict X-API-Key authentication
-│   ├── service/           # Business logic, validation, fallback orchestration, and mailer interface
+│   ├── config/            # Environment variable loading & validation (.env, DSN, JWT)
+│   ├── handler/           # HTTP transport, JSON unmarshaling, Swagger annotations (auth, health, smtp, email)
+│   ├── middleware/        # Request logging, CORS, API Key and JWT authentication
+│   ├── service/           # Business logic, validation, fallback orchestration, auth, and mailer interface
 │   │   └── mailer/        # RFC 5322 MIME builder, SMTP client (STARTTLS, SSL/TLS, Plain)
-│   ├── repository/        # GORM database queries & transactions (smtp_configs)
-│   └── model/             # GORM entities, DTOs, request/response models
+│   ├── repository/        # GORM database queries & transactions (smtp_configs, users)
+│   └── model/             # GORM entities (User, SMTPConfig), DTOs, request/response models
 └── pkg/
     └── response/          # Standardized API response format helpers for Chi (net/http)
 ```

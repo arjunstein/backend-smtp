@@ -12,6 +12,23 @@ definitions:
         example: invoice.pdf
         type: string
     type: object
+  model.AuthResponse:
+    properties:
+      access_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+      expires_in:
+        example: 3600
+        type: integer
+      refresh_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+      token_type:
+        example: Bearer
+        type: string
+      user:
+        $ref: '#/definitions/model.UserResponse'
+    type: object
   model.CreateSMTPConfigRequest:
     properties:
       encryption:
@@ -43,6 +60,36 @@ definitions:
         type: integer
       username:
         example: no-reply@example.com
+        type: string
+    type: object
+  model.LoginRequest:
+    properties:
+      password:
+        example: secret123
+        type: string
+      username_or_email:
+        example: arjun
+        type: string
+    type: object
+  model.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+    type: object
+  model.RefreshTokenResponse:
+    properties:
+      access_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+      expires_in:
+        example: 3600
+        type: integer
+      refresh_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+      token_type:
+        example: Bearer
         type: string
     type: object
   model.SMTPConfigResponse:
@@ -184,6 +231,24 @@ definitions:
         example: user@mailtrap.io
         type: string
     type: object
+  model.UserResponse:
+    properties:
+      created_at:
+        example: "2026-10-20T10:00:00Z"
+        type: string
+      email:
+        example: arjun@example.com
+        type: string
+      id:
+        example: 1
+        type: integer
+      name:
+        example: Arjun Gunawan
+        type: string
+      username:
+        example: arjun
+        type: string
+    type: object
   response.APIResponse:
     properties:
       data:
@@ -272,6 +337,113 @@ info:
   title: Centralized SMTP Email Sender Service
   version: "1.0"
 paths:
+  /api/v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates credentials and returns a signed JWT token
+      parameters:
+      - description: User Login Credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully authenticated
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.AuthResponse'
+              type: object
+        "400":
+          description: Invalid input format
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Invalid username/email or password
+          schema:
+            $ref: '#/definitions/response.UnauthorizedResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.InternalErrorResponse'
+      summary: Authenticate user
+      tags:
+      - Auth
+  /api/v1/auth/me:
+    get:
+      description: Returns the profile of the currently authenticated user using JWT
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Current user profile
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.UserResponse'
+              type: object
+        "401":
+          description: Missing or invalid token
+          schema:
+            $ref: '#/definitions/response.UnauthorizedResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current user profile
+      tags:
+      - Auth
+  /api/v1/auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Uses a valid refresh token to issue a new dynamic access token
+        and rotated refresh token
+      parameters:
+      - description: Refresh Token Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully refreshed tokens
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.RefreshTokenResponse'
+              type: object
+        "400":
+          description: Invalid input format
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Invalid, expired, or wrong token type
+          schema:
+            $ref: '#/definitions/response.UnauthorizedResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.InternalErrorResponse'
+      summary: Refresh access token
+      tags:
+      - Auth
   /api/v1/emails/send:
     post:
       consumes:
@@ -634,6 +806,8 @@ securityDefinitions:
     type: apiKey
 swagger: "2.0"
 tags:
+- description: User authentication, token renewal, and profile operations
+  name: Auth
 - description: Service health and readiness operations
   name: Health
 - description: Management and testing of SMTP server configurations

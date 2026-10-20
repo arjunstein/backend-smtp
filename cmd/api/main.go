@@ -41,6 +41,9 @@ import (
 // @in header
 // @name Authorization
 
+// @tag.name Auth
+// @tag.description User authentication, token renewal, and profile operations
+
 // @tag.name Health
 // @tag.description Service health and readiness operations
 
@@ -77,9 +80,9 @@ func main() {
 	sqlDB.SetMaxIdleConns(cfg.DBMaxIdleConns)
 	sqlDB.SetConnMaxLifetime(cfg.DBConnMaxLifetime)
 
-	// Run auto migrations for smtp_configs
+	// Run auto migrations for database entities
 	log.Println("[Database] Executing database auto-migrations...")
-	if err := db.AutoMigrate(&model.SMTPConfig{}); err != nil {
+	if err := db.AutoMigrate(&model.SMTPConfig{}, &model.User{}); err != nil {
 		log.Fatalf("[Database] Migration failure: %v", err)
 	}
 	log.Println("[Database] Auto-migrations applied successfully.")
@@ -87,13 +90,21 @@ func main() {
 	// 3. Initialize Clean Architecture components
 	mailerEngine := mailer.NewMailer()
 	smtpRepo := repository.NewSMTPConfigRepository(db)
+	userRepo := repository.NewUserRepository(db)
 
 	smtpService := service.NewSMTPConfigService(smtpRepo, mailerEngine)
 	emailService := service.NewEmailService(smtpRepo, mailerEngine)
+	authService := service.NewAuthService(userRepo, cfg.JWTSecret, cfg.JWTAccessExpirationMinutes, cfg.JWTRefreshExpirationDays)
+
+	// Ensure single initial user exists
+	if _, err := authService.SeedInitialUser(context.Background(), cfg.AdminName, cfg.AdminUsername, cfg.AdminEmail, cfg.AdminPassword); err != nil {
+		log.Printf("[Auth] Notice: Could not seed initial user: %v", err)
+	}
 
 	healthHandler := handler.NewHealthHandler()
 	smtpConfigHandler := handler.NewSMTPConfigHandler(smtpService)
 	emailHandler := handler.NewEmailHandler(emailService)
+	authHandler := handler.NewAuthHandler(authService)
 
 	// 4. Initialize Chi Router & Middleware
 	r := chi.NewRouter()
@@ -115,24 +126,34 @@ func main() {
 		http.Redirect(w, r, "/documentation/index.html", http.StatusMovedPermanently)
 	})
 
-	// Protected API Routes
+	// API Routes
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Use(middleware.APIKeyAuth(cfg.APIKey))
-
-		// SMTP Config endpoints
-		r.Route("/smtp-configs", func(r chi.Router) {
-			r.Post("/", smtpConfigHandler.Create)
-			r.Get("/", smtpConfigHandler.List)
-			r.Get("/{id}", smtpConfigHandler.GetByID)
-			r.Put("/{id}", smtpConfigHandler.Update)
-			r.Delete("/{id}", smtpConfigHandler.Delete)
-			r.Put("/{id}/default", smtpConfigHandler.SetDefault)
-			r.Post("/{id}/test", smtpConfigHandler.TestConnection)
+		// Public Auth routes
+		r.Route("/auth", func(r chi.Router) {
+			r.Post("/login", authHandler.Login)
+			r.Post("/refresh", authHandler.RefreshToken)
+			r.With(middleware.JWTAuth(authService)).Get("/me", authHandler.Me)
 		})
 
-		// Centralized Email sending endpoint
-		r.Route("/emails", func(r chi.Router) {
-			r.Post("/send", emailHandler.Send)
+		// Protected resources (accessible via API Key or JWT Bearer)
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.CombinedAuth(cfg.APIKey, authService))
+
+			// SMTP Config endpoints
+			r.Route("/smtp-configs", func(r chi.Router) {
+				r.Post("/", smtpConfigHandler.Create)
+				r.Get("/", smtpConfigHandler.List)
+				r.Get("/{id}", smtpConfigHandler.GetByID)
+				r.Put("/{id}", smtpConfigHandler.Update)
+				r.Delete("/{id}", smtpConfigHandler.Delete)
+				r.Put("/{id}/default", smtpConfigHandler.SetDefault)
+				r.Post("/{id}/test", smtpConfigHandler.TestConnection)
+			})
+
+			// Centralized Email sending endpoint
+			r.Route("/emails", func(r chi.Router) {
+				r.Post("/send", emailHandler.Send)
+			})
 		})
 	})
 

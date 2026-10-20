@@ -202,3 +202,73 @@ type SendEmailResponse struct {
 type TestConnectionResponse struct {
 	Status string `json:"status" example:"CONNECTED"`
 }
+
+
+// LoginRequest payload for user authentication.
+type LoginRequest struct {
+	UsernameOrEmail string `json:"username_or_email" example:"arjun"`
+	Password        string `json:"password" example:"secret123"`
+}
+
+// Validate validates LoginRequest fields.
+func (r *LoginRequest) Validate() error {
+	if strings.TrimSpace(r.UsernameOrEmail) == "" {
+		return errors.New("username or email is required")
+	}
+	if strings.TrimSpace(r.Password) == "" {
+		return errors.New("password is required")
+	}
+	return nil
+}
+
+// UserResponse represents safe user account response.
+type UserResponse struct {
+	ID        uint      `json:"id" example:"1"`
+	Name      string    `json:"name" example:"Arjun Gunawan"`
+	Username  string    `json:"username" example:"arjun"`
+	Email     string    `json:"email" example:"arjun@example.com"`
+	CreatedAt time.Time `json:"created_at" example:"2026-10-20T10:00:00Z"`
+}
+
+// ToUserResponse converts User entity to UserResponse DTO.
+func ToUserResponse(user *User) UserResponse {
+	return UserResponse{
+		ID:        user.ID,
+		Name:      user.Name,
+		Username:  user.Username,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt,
+	}
+}
+
+// AuthResponse payload returned upon successful login or registration.
+type AuthResponse struct {
+	AccessToken  string       `json:"access_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+	RefreshToken string       `json:"refresh_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+	TokenType    string       `json:"token_type" example:"Bearer"`
+	ExpiresIn    int64        `json:"expires_in" example:"3600"`
+	User         UserResponse `json:"user"`
+}
+
+// RefreshTokenRequest payload for renewing an expired access token.
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+}
+
+// Validate validates RefreshTokenRequest fields.
+func (r *RefreshTokenRequest) Validate() error {
+	if strings.TrimSpace(r.RefreshToken) == "" {
+		return errors.New("refresh_token is required")
+	}
+	return nil
+}
+
+// RefreshTokenResponse payload containing renewed access & refresh tokens.
+type RefreshTokenResponse struct {
+	AccessToken  string `json:"access_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+	RefreshToken string `json:"refresh_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+	TokenType    string `json:"token_type" example:"Bearer"`
+	ExpiresIn    int64  `json:"expires_in" example:"3600"`
+}
+
+
