@@ -1,0 +1,538 @@
+basePath: /
+definitions:
+  model.AttachmentDTO:
+    properties:
+      content_base64:
+        example: JVBERi0xLjQK...
+        type: string
+      content_type:
+        example: application/pdf
+        type: string
+      filename:
+        example: invoice.pdf
+        type: string
+    type: object
+  model.CreateSMTPConfigRequest:
+    properties:
+      encryption:
+        example: STARTTLS
+        type: string
+      from_email:
+        example: no-reply@example.com
+        type: string
+      from_name:
+        example: Notification Agent
+        type: string
+      host:
+        example: smtp.gmail.com
+        type: string
+      is_active:
+        example: true
+        type: boolean
+      is_default:
+        example: false
+        type: boolean
+      name:
+        example: Gmail Service
+        type: string
+      password:
+        example: secret123
+        type: string
+      port:
+        example: 587
+        type: integer
+      username:
+        example: no-reply@example.com
+        type: string
+    type: object
+  model.SendEmailRequest:
+    properties:
+      attachments:
+        items:
+          $ref: '#/definitions/model.AttachmentDTO'
+        type: array
+      bcc:
+        example:
+        - '["bcc@example.com"]'
+        items:
+          type: string
+        type: array
+      body:
+        example: <h1>Hello!</h1><p>Your code is 123456</p>
+        type: string
+      cc:
+        example:
+        - '["cc@example.com"]'
+        items:
+          type: string
+        type: array
+      is_html:
+        example: true
+        type: boolean
+      smtp_config_id:
+        example: 1
+        type: integer
+      subject:
+        example: Your verification code
+        type: string
+      to:
+        example:
+        - '["recipient@example.com"]'
+        items:
+          type: string
+        type: array
+    type: object
+  model.UpdateSMTPConfigRequest:
+    properties:
+      encryption:
+        example: STARTTLS
+        type: string
+      from_email:
+        example: notifications@mailtrap.io
+        type: string
+      from_name:
+        example: Central Mailer
+        type: string
+      host:
+        example: smtp.mailtrap.io
+        type: string
+      is_active:
+        example: true
+        type: boolean
+      is_default:
+        example: true
+        type: boolean
+      name:
+        example: Updated Service Name
+        type: string
+      password:
+        example: newsecret123
+        type: string
+      port:
+        example: 587
+        type: integer
+      username:
+        example: user@mailtrap.io
+        type: string
+    type: object
+  response.APIResponse:
+    properties:
+      data:
+        type: any
+      error:
+        type: any
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+info:
+  contact: {}
+  description: Provide secret API Key configured in .env
+  title: Centralized SMTP Email Sender Service
+  version: "1.0"
+paths:
+  /api/v1/emails/logs:
+    get:
+      description: Returns paginated history of email dispatches
+      parameters:
+      - default: 20
+        description: Items per page (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Item offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Email audit logs
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: List email delivery audit logs
+      tags:
+      - Emails
+  /api/v1/emails/logs/{id}:
+    get:
+      description: Returns audit log details for a single email dispatch
+      parameters:
+      - description: Email Log ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Email log details
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "400":
+          description: Invalid ID format
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "404":
+          description: Log not found
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get email delivery audit log by ID
+      tags:
+      - Emails
+  /api/v1/emails/send:
+    post:
+      consumes:
+      - application/json
+      description: Dispatches an email using the specified SMTP config or the system
+        default
+      parameters:
+      - description: Send email payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/model.SendEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Email successfully dispatched
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "400":
+          description: Invalid request payload or mail delivery failure
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Send email via centralized SMTP agent
+      tags:
+      - Emails
+  /api/v1/health:
+    get:
+      description: Returns uptime status and health of the central SMTP sender service
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Service is healthy and ready to dispatch emails
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Service health check
+      tags:
+      - Health
+  /api/v1/smtp-configs:
+    get:
+      description: Returns all registered SMTP configurations with masked credentials
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of SMTP configurations
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: List all SMTP configurations
+      tags:
+      - SMTP Config
+    post:
+      consumes:
+      - application/json
+      description: Registers a new SMTP account for central email delivery
+      parameters:
+      - description: SMTP configuration payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateSMTPConfigRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: SMTP configuration created successfully
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "400":
+          description: Invalid request payload
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "409":
+          description: Configuration name already exists
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Create new SMTP configuration
+      tags:
+      - SMTP Config
+  /api/v1/smtp-configs/{id}:
+    delete:
+      description: Deletes an SMTP configuration by ID
+      parameters:
+      - description: SMTP Config ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: SMTP configuration deleted
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "400":
+          description: Invalid ID format
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "404":
+          description: Configuration not found
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete SMTP configuration
+      tags:
+      - SMTP Config
+    get:
+      description: Fetches specific SMTP configuration details by numeric ID
+      parameters:
+      - description: SMTP Config ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: SMTP configuration details
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "400":
+          description: Invalid ID format
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "404":
+          description: Configuration not found
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get SMTP configuration by ID
+      tags:
+      - SMTP Config
+    put:
+      consumes:
+      - application/json
+      description: Updates fields of an existing SMTP configuration
+      parameters:
+      - description: SMTP Config ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateSMTPConfigRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: SMTP configuration updated successfully
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "400":
+          description: Invalid input data
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "404":
+          description: Configuration not found
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "409":
+          description: Configuration name conflict
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Update SMTP configuration
+      tags:
+      - SMTP Config
+  /api/v1/smtp-configs/{id}/default:
+    put:
+      description: Sets target configuration as active default for outbound email
+        fallback
+      parameters:
+      - description: SMTP Config ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Configuration set as default
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "400":
+          description: Invalid ID
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "404":
+          description: Configuration not found
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Set SMTP configuration as system default
+      tags:
+      - SMTP Config
+  /api/v1/smtp-configs/{id}/test:
+    post:
+      description: Pings and tests authentication with the specified SMTP host
+      parameters:
+      - description: SMTP Config ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: SMTP connection successful
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "400":
+          description: Invalid ID or SMTP handshake failure
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "404":
+          description: Configuration not found
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Test SMTP connection
+      tags:
+      - SMTP Config
+  /health:
+    get:
+      description: Returns uptime status and health of the central SMTP sender service
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Service is healthy and ready to dispatch emails
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Service health check
+      tags:
+      - Health
+schemes:
+- http
+- https
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: X-API-Key
+    type: apiKey
+swagger: "2.0"
+tags:
+- description: Service health and readiness operations
+  name: Health
+- description: Management and testing of SMTP server configurations
+  name: SMTP Config
+- description: Centralized email dispatch and audit log inspection
+  name: Emails
