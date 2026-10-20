@@ -25,11 +25,12 @@ func NewEmailHandler(emailService service.EmailService) *EmailHandler {
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
+// @Security BearerAuth
 // @Param payload body model.SendEmailRequest true "Send email payload"
-// @Success 200 {object} response.APIResponse "Email successfully dispatched"
-// @Failure 400 {object} response.APIResponse "Invalid request payload or mail delivery failure"
-// @Failure 401 {object} response.APIResponse "Unauthorized"
-// @Failure 500 {object} response.APIResponse "Internal server error"
+// @Success 200 {object} response.APIResponse{data=model.SendEmailResponse} "Email successfully dispatched"
+// @Failure 400 {object} response.ErrorResponse "Invalid request payload or mail delivery failure"
+// @Failure 401 {object} response.UnauthorizedResponse "Invalid or missing API authentication credentials"
+// @Failure 500 {object} response.InternalErrorResponse "Internal server error"
 // @Router /api/v1/emails/send [post]
 func (h *EmailHandler) Send(w http.ResponseWriter, r *http.Request) {
 	var req model.SendEmailRequest

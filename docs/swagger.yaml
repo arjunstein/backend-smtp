@@ -45,6 +45,45 @@ definitions:
         example: no-reply@example.com
         type: string
     type: object
+  model.SMTPConfigResponse:
+    properties:
+      created_at:
+        example: "2026-10-20T10:00:00Z"
+        type: string
+      encryption:
+        example: STARTTLS
+        type: string
+      from_email:
+        example: no-reply@example.com
+        type: string
+      from_name:
+        example: Notification Agent
+        type: string
+      host:
+        example: smtp.gmail.com
+        type: string
+      id:
+        example: 1
+        type: integer
+      is_active:
+        example: true
+        type: boolean
+      is_default:
+        example: false
+        type: boolean
+      name:
+        example: Gmail Service
+        type: string
+      port:
+        example: 587
+        type: integer
+      updated_at:
+        example: "2026-10-20T10:00:00Z"
+        type: string
+      username:
+        example: no-reply@example.com
+        type: string
+    type: object
   model.SendEmailRequest:
     properties:
       attachments:
@@ -53,7 +92,7 @@ definitions:
         type: array
       bcc:
         example:
-        - '["bcc@example.com"]'
+        - bcc@example.com
         items:
           type: string
         type: array
@@ -62,7 +101,7 @@ definitions:
         type: string
       cc:
         example:
-        - '["cc@example.com"]'
+        - cc@example.com
         items:
           type: string
         type: array
@@ -77,10 +116,40 @@ definitions:
         type: string
       to:
         example:
-        - '["recipient@example.com"]'
+        - recipient@example.com
         items:
           type: string
         type: array
+    type: object
+  model.SendEmailResponse:
+    properties:
+      recipients:
+        example:
+        - recipient@example.com
+        items:
+          type: string
+        type: array
+      sent_at:
+        example: "2026-10-20T10:00:00Z"
+        type: string
+      smtp_config_id:
+        example: 1
+        type: integer
+      smtp_name:
+        example: Gmail Service
+        type: string
+      status:
+        example: SUCCESS
+        type: string
+      subject:
+        example: Your verification code
+        type: string
+    type: object
+  model.TestConnectionResponse:
+    properties:
+      status:
+        example: CONNECTED
+        type: string
     type: object
   model.UpdateSMTPConfigRequest:
     properties:
@@ -122,13 +191,84 @@ definitions:
       error:
         type: any
       message:
+        example: Operation completed successfully
         type: string
       success:
+        example: true
+        type: boolean
+    type: object
+  response.ConflictResponse:
+    properties:
+      message:
+        example: smtp configuration name already exists
+        type: string
+      success:
+        example: false
+        type: boolean
+    type: object
+  response.ErrorResponse:
+    properties:
+      error:
+        example: name is required
+        type: string
+      message:
+        example: Invalid request payload or validation error
+        type: string
+      success:
+        example: false
+        type: boolean
+    type: object
+  response.HealthResponse:
+    properties:
+      message:
+        example: Service is healthy
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  response.InternalErrorResponse:
+    properties:
+      error:
+        example: database connection failure
+        type: string
+      message:
+        example: Internal server error
+        type: string
+      success:
+        example: false
+        type: boolean
+    type: object
+  response.NotFoundResponse:
+    properties:
+      message:
+        example: Resource not found
+        type: string
+      success:
+        example: false
+        type: boolean
+    type: object
+  response.SimpleResponse:
+    properties:
+      message:
+        example: Operation completed successfully
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  response.UnauthorizedResponse:
+    properties:
+      message:
+        example: Invalid or missing API authentication credentials
+        type: string
+      success:
+        example: false
         type: boolean
     type: object
 info:
   contact: {}
-  description: Provide secret API Key configured in .env
+  description: Provide 'Bearer <API_KEY>' or raw API Key configured in .env
   title: Centralized SMTP Email Sender Service
   version: "1.0"
 paths:
@@ -151,37 +291,30 @@ paths:
         "200":
           description: Email successfully dispatched
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.SendEmailResponse'
+              type: object
         "400":
           description: Invalid request payload or mail delivery failure
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "401":
-          description: Unauthorized
+          description: Invalid or missing API authentication credentials
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.UnauthorizedResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.InternalErrorResponse'
       security:
       - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Send email via centralized SMTP agent
       tags:
       - Emails
-  /api/v1/health:
-    get:
-      description: Returns uptime status and health of the central SMTP sender service
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Service is healthy and ready to dispatch emails
-          schema:
-            $ref: '#/definitions/response.APIResponse'
-      summary: Service health check
-      tags:
-      - Health
   /api/v1/smtp-configs:
     get:
       description: Returns all registered SMTP configurations with masked credentials
@@ -191,17 +324,25 @@ paths:
         "200":
           description: List of SMTP configurations
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.SMTPConfigResponse'
+                  type: array
+              type: object
         "401":
-          description: Unauthorized
+          description: Invalid or missing API authentication credentials
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.UnauthorizedResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.InternalErrorResponse'
       security:
       - ApiKeyAuth: []
+      - BearerAuth: []
       summary: List all SMTP configurations
       tags:
       - SMTP Config
@@ -222,25 +363,31 @@ paths:
         "201":
           description: SMTP configuration created successfully
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.SMTPConfigResponse'
+              type: object
         "400":
-          description: Invalid request payload
+          description: Invalid request payload or validation error
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "401":
-          description: Unauthorized
+          description: Invalid or missing API authentication credentials
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.UnauthorizedResponse'
         "409":
           description: Configuration name already exists
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.ConflictResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.InternalErrorResponse'
       security:
       - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Create new SMTP configuration
       tags:
       - SMTP Config
@@ -259,25 +406,26 @@ paths:
         "200":
           description: SMTP configuration deleted
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.SimpleResponse'
         "400":
           description: Invalid ID format
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "401":
-          description: Unauthorized
+          description: Invalid or missing API authentication credentials
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.UnauthorizedResponse'
         "404":
           description: Configuration not found
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.NotFoundResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.InternalErrorResponse'
       security:
       - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Delete SMTP configuration
       tags:
       - SMTP Config
@@ -295,25 +443,31 @@ paths:
         "200":
           description: SMTP configuration details
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.SMTPConfigResponse'
+              type: object
         "400":
           description: Invalid ID format
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "401":
-          description: Unauthorized
+          description: Invalid or missing API authentication credentials
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.UnauthorizedResponse'
         "404":
           description: Configuration not found
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.NotFoundResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.InternalErrorResponse'
       security:
       - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Get SMTP configuration by ID
       tags:
       - SMTP Config
@@ -339,29 +493,35 @@ paths:
         "200":
           description: SMTP configuration updated successfully
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.SMTPConfigResponse'
+              type: object
         "400":
-          description: Invalid input data
+          description: Invalid input data or validation error
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "401":
-          description: Unauthorized
+          description: Invalid or missing API authentication credentials
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.UnauthorizedResponse'
         "404":
           description: Configuration not found
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.NotFoundResponse'
         "409":
           description: Configuration name conflict
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.ConflictResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.InternalErrorResponse'
       security:
       - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Update SMTP configuration
       tags:
       - SMTP Config
@@ -381,25 +541,26 @@ paths:
         "200":
           description: Configuration set as default
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.SimpleResponse'
         "400":
           description: Invalid ID
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "401":
-          description: Unauthorized
+          description: Invalid or missing API authentication credentials
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.UnauthorizedResponse'
         "404":
           description: Configuration not found
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.NotFoundResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.InternalErrorResponse'
       security:
       - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Set SMTP configuration as system default
       tags:
       - SMTP Config
@@ -418,21 +579,31 @@ paths:
         "200":
           description: SMTP connection successful
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.TestConnectionResponse'
+              type: object
         "400":
           description: Invalid ID or SMTP handshake failure
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "401":
-          description: Unauthorized
+          description: Invalid or missing API authentication credentials
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.UnauthorizedResponse'
         "404":
           description: Configuration not found
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.NotFoundResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.InternalErrorResponse'
       security:
       - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Test SMTP connection
       tags:
       - SMTP Config
@@ -443,9 +614,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: Service is healthy and ready to dispatch emails
+          description: Service is healthy
           schema:
-            $ref: '#/definitions/response.APIResponse'
+            $ref: '#/definitions/response.HealthResponse'
       summary: Service health check
       tags:
       - Health
@@ -456,6 +627,10 @@ securityDefinitions:
   ApiKeyAuth:
     in: header
     name: X-API-Key
+    type: apiKey
+  BearerAuth:
+    in: header
+    name: Authorization
     type: apiKey
 swagger: "2.0"
 tags:

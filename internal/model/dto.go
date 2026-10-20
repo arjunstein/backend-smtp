@@ -111,8 +111,8 @@ type SMTPConfigResponse struct {
 	Encryption string    `json:"encryption" example:"STARTTLS"`
 	IsActive   bool      `json:"is_active" example:"true"`
 	IsDefault  bool      `json:"is_default" example:"false"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	CreatedAt  time.Time `json:"created_at" example:"2026-10-20T10:00:00Z"`
+	UpdatedAt  time.Time `json:"updated_at" example:"2026-10-20T10:00:00Z"`
 }
 
 // ToResponse converts SMTPConfig entity to safe client DTO.
@@ -143,9 +143,9 @@ type AttachmentDTO struct {
 // SendEmailRequest payload for dispatching email through the centralized service.
 type SendEmailRequest struct {
 	SMTPConfigID *uint           `json:"smtp_config_id,omitempty" example:"1"`
-	To           []string        `json:"to" example:"[\"recipient@example.com\"]"`
-	CC           []string        `json:"cc,omitempty" example:"[\"cc@example.com\"]"`
-	BCC          []string        `json:"bcc,omitempty" example:"[\"bcc@example.com\"]"`
+	To           []string        `json:"to" example:"recipient@example.com"`
+	CC           []string        `json:"cc,omitempty" example:"cc@example.com"`
+	BCC          []string        `json:"bcc,omitempty" example:"bcc@example.com"`
 	Subject      string          `json:"subject" example:"Your verification code"`
 	Body         string          `json:"body" example:"<h1>Hello!</h1><p>Your code is 123456</p>"`
 	IsHTML       bool            `json:"is_html" example:"true"`
@@ -193,7 +193,12 @@ type SendEmailResponse struct {
 	Status       string    `json:"status" example:"SUCCESS"`
 	SMTPConfigID uint      `json:"smtp_config_id" example:"1"`
 	SMTPName     string    `json:"smtp_name" example:"Gmail Service"`
-	Recipients   []string  `json:"recipients" example:"[\"recipient@example.com\"]"`
+	Recipients   []string  `json:"recipients" example:"recipient@example.com"`
 	Subject      string    `json:"subject" example:"Your verification code"`
-	SentAt       time.Time `json:"sent_at"`
+	SentAt       time.Time `json:"sent_at" example:"2026-10-20T10:00:00Z"`
+}
+
+// TestConnectionResponse payload for SMTP ping verification.
+type TestConnectionResponse struct {
+	Status string `json:"status" example:"CONNECTED"`
 }

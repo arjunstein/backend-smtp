@@ -38,6 +38,11 @@ import (
 // @name X-API-Key
 // @description Provide secret API Key configured in .env
 
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Provide 'Bearer <API_KEY>' or raw API Key configured in .env
+
 // @tag.name Health
 // @tag.description Service health and readiness operations
 
@@ -115,8 +120,6 @@ func main() {
 	// Protected API Routes
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(middleware.APIKeyAuth(cfg.APIKey))
-
-		r.Get("/health", healthHandler.CheckHealth)
 
 		// SMTP Config endpoints
 		r.Route("/smtp-configs", func(r chi.Router) {

@@ -151,7 +151,7 @@ All `/api/v1` endpoints (except public `/health`) require the `X-API-Key: <API_K
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/health` / `/api/v1/health` | Service health and uptime check |
+| `GET` | `/health` | Service health and uptime check |
 | `POST` | `/api/v1/smtp-configs` | Create a new SMTP configuration |
 | `GET` | `/api/v1/smtp-configs` | List all SMTP configurations (passwords masked) |
 | `GET` | `/api/v1/smtp-configs/{id}` | Get specific SMTP configuration by ID |
