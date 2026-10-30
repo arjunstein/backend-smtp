@@ -16,112 +16,178 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/v1/emails/logs": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
+        "/api/v1/auth/login": {
+            "post": {
+                "description": "Authenticates credentials and returns a signed JWT token",
+                "consumes": [
+                    "application/json"
                 ],
-                "description": "Returns paginated history of email dispatches",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Emails"
+                    "Auth"
                 ],
-                "summary": "List email delivery audit logs",
+                "summary": "Authenticate user",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "default": 20,
-                        "description": "Items per page (max 100)",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 0,
-                        "description": "Item offset",
-                        "name": "offset",
-                        "in": "query"
+                        "description": "User Login Credentials",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.LoginRequest"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Email audit logs",
+                        "description": "Successfully authenticated",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.AuthResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input format",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Invalid username/email or password",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.UnauthorizedResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.InternalErrorResponse"
                         }
                     }
                 }
             }
         },
-        "/api/v1/emails/logs/{id}": {
+        "/api/v1/auth/me": {
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Returns audit log details for a single email dispatch",
+                "description": "Returns the profile of the currently authenticated user using JWT",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Emails"
+                    "Auth"
                 ],
-                "summary": "Get email delivery audit log by ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Email Log ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
+                "summary": "Get current user profile",
                 "responses": {
                     "200": {
-                        "description": "Email log details",
+                        "description": "Current user profile",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid ID format",
-                        "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.UserResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Missing or invalid token",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Log not found",
-                        "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.UnauthorizedResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.InternalErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/refresh": {
+            "post": {
+                "description": "Uses a valid refresh token to issue a new dynamic access token and rotated refresh token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Refresh access token",
+                "parameters": [
+                    {
+                        "description": "Refresh Token Payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.RefreshTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully refreshed tokens",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.RefreshTokenResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input format",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid, expired, or wrong token type",
+                        "schema": {
+                            "$ref": "#/definitions/response.UnauthorizedResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.InternalErrorResponse"
                         }
                     }
                 }
@@ -132,6 +198,9 @@ const docTemplate = `{
                 "security": [
                     {
                         "ApiKeyAuth": []
+                    },
+                    {
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Dispatches an email using the specified SMTP config or the system default",
@@ -160,45 +229,37 @@ const docTemplate = `{
                     "200": {
                         "description": "Email successfully dispatched",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.SendEmailResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
                         "description": "Invalid request payload or mail delivery failure",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Invalid or missing API authentication credentials",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.UnauthorizedResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/health": {
-            "get": {
-                "description": "Returns uptime status and health of the central SMTP sender service",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Health"
-                ],
-                "summary": "Service health check",
-                "responses": {
-                    "200": {
-                        "description": "Service is healthy and ready to dispatch emails",
-                        "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.InternalErrorResponse"
                         }
                     }
                 }
@@ -209,6 +270,9 @@ const docTemplate = `{
                 "security": [
                     {
                         "ApiKeyAuth": []
+                    },
+                    {
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Returns all registered SMTP configurations with masked credentials",
@@ -223,19 +287,34 @@ const docTemplate = `{
                     "200": {
                         "description": "List of SMTP configurations",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.SMTPConfigResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Invalid or missing API authentication credentials",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.UnauthorizedResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.InternalErrorResponse"
                         }
                     }
                 }
@@ -244,6 +323,9 @@ const docTemplate = `{
                 "security": [
                     {
                         "ApiKeyAuth": []
+                    },
+                    {
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Registers a new SMTP account for central email delivery",
@@ -272,31 +354,43 @@ const docTemplate = `{
                     "201": {
                         "description": "SMTP configuration created successfully",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.SMTPConfigResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
-                        "description": "Invalid request payload",
+                        "description": "Invalid request payload or validation error",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Invalid or missing API authentication credentials",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.UnauthorizedResponse"
                         }
                     },
                     "409": {
                         "description": "Configuration name already exists",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.ConflictResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.InternalErrorResponse"
                         }
                     }
                 }
@@ -307,6 +401,9 @@ const docTemplate = `{
                 "security": [
                     {
                         "ApiKeyAuth": []
+                    },
+                    {
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Fetches specific SMTP configuration details by numeric ID",
@@ -330,31 +427,43 @@ const docTemplate = `{
                     "200": {
                         "description": "SMTP configuration details",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.SMTPConfigResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
                         "description": "Invalid ID format",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Invalid or missing API authentication credentials",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.UnauthorizedResponse"
                         }
                     },
                     "404": {
                         "description": "Configuration not found",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.NotFoundResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.InternalErrorResponse"
                         }
                     }
                 }
@@ -363,6 +472,9 @@ const docTemplate = `{
                 "security": [
                     {
                         "ApiKeyAuth": []
+                    },
+                    {
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Updates fields of an existing SMTP configuration",
@@ -398,37 +510,49 @@ const docTemplate = `{
                     "200": {
                         "description": "SMTP configuration updated successfully",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.SMTPConfigResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
-                        "description": "Invalid input data",
+                        "description": "Invalid input data or validation error",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Invalid or missing API authentication credentials",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.UnauthorizedResponse"
                         }
                     },
                     "404": {
                         "description": "Configuration not found",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.NotFoundResponse"
                         }
                     },
                     "409": {
                         "description": "Configuration name conflict",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.ConflictResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.InternalErrorResponse"
                         }
                     }
                 }
@@ -437,6 +561,9 @@ const docTemplate = `{
                 "security": [
                     {
                         "ApiKeyAuth": []
+                    },
+                    {
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Deletes an SMTP configuration by ID",
@@ -460,31 +587,31 @@ const docTemplate = `{
                     "200": {
                         "description": "SMTP configuration deleted",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.SimpleResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid ID format",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Invalid or missing API authentication credentials",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.UnauthorizedResponse"
                         }
                     },
                     "404": {
                         "description": "Configuration not found",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.NotFoundResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.InternalErrorResponse"
                         }
                     }
                 }
@@ -495,6 +622,9 @@ const docTemplate = `{
                 "security": [
                     {
                         "ApiKeyAuth": []
+                    },
+                    {
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Sets target configuration as active default for outbound email fallback",
@@ -518,31 +648,31 @@ const docTemplate = `{
                     "200": {
                         "description": "Configuration set as default",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.SimpleResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid ID",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Invalid or missing API authentication credentials",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.UnauthorizedResponse"
                         }
                     },
                     "404": {
                         "description": "Configuration not found",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.NotFoundResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.InternalErrorResponse"
                         }
                     }
                 }
@@ -553,6 +683,9 @@ const docTemplate = `{
                 "security": [
                     {
                         "ApiKeyAuth": []
+                    },
+                    {
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Pings and tests authentication with the specified SMTP host",
@@ -576,25 +709,43 @@ const docTemplate = `{
                     "200": {
                         "description": "SMTP connection successful",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.TestConnectionResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
                         "description": "Invalid ID or SMTP handshake failure",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Invalid or missing API authentication credentials",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.UnauthorizedResponse"
                         }
                     },
                     "404": {
                         "description": "Configuration not found",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.NotFoundResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.InternalErrorResponse"
                         }
                     }
                 }
@@ -612,9 +763,9 @@ const docTemplate = `{
                 "summary": "Service health check",
                 "responses": {
                     "200": {
-                        "description": "Service is healthy and ready to dispatch emails",
+                        "description": "Service is healthy",
                         "schema": {
-                            "$ref": "#/definitions/response.APIResponse"
+                            "$ref": "#/definitions/response.HealthResponse"
                         }
                     }
                 }
@@ -636,6 +787,30 @@ const docTemplate = `{
                 "filename": {
                     "type": "string",
                     "example": "invoice.pdf"
+                }
+            }
+        },
+        "model.AuthResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                },
+                "expires_in": {
+                    "type": "integer",
+                    "example": 3600
+                },
+                "refresh_token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                },
+                "token_type": {
+                    "type": "string",
+                    "example": "Bearer"
+                },
+                "user": {
+                    "$ref": "#/definitions/model.UserResponse"
                 }
             }
         },
@@ -684,6 +859,102 @@ const docTemplate = `{
                 }
             }
         },
+        "model.LoginRequest": {
+            "type": "object",
+            "properties": {
+                "password": {
+                    "type": "string",
+                    "example": "secret123"
+                },
+                "username_or_email": {
+                    "type": "string",
+                    "example": "arjun"
+                }
+            }
+        },
+        "model.RefreshTokenRequest": {
+            "type": "object",
+            "properties": {
+                "refresh_token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                }
+            }
+        },
+        "model.RefreshTokenResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                },
+                "expires_in": {
+                    "type": "integer",
+                    "example": 3600
+                },
+                "refresh_token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                },
+                "token_type": {
+                    "type": "string",
+                    "example": "Bearer"
+                }
+            }
+        },
+        "model.SMTPConfigResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string",
+                    "example": "2026-10-20T10:00:00Z"
+                },
+                "encryption": {
+                    "type": "string",
+                    "example": "STARTTLS"
+                },
+                "from_email": {
+                    "type": "string",
+                    "example": "no-reply@example.com"
+                },
+                "from_name": {
+                    "type": "string",
+                    "example": "Notification Agent"
+                },
+                "host": {
+                    "type": "string",
+                    "example": "smtp.gmail.com"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "is_active": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "is_default": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Gmail Service"
+                },
+                "port": {
+                    "type": "integer",
+                    "example": 587
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2026-10-20T10:00:00Z"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "no-reply@example.com"
+                }
+            }
+        },
         "model.SendEmailRequest": {
             "type": "object",
             "properties": {
@@ -699,7 +970,7 @@ const docTemplate = `{
                         "type": "string"
                     },
                     "example": [
-                        "[\"bcc@example.com\"]"
+                        "bcc@example.com"
                     ]
                 },
                 "body": {
@@ -712,7 +983,7 @@ const docTemplate = `{
                         "type": "string"
                     },
                     "example": [
-                        "[\"cc@example.com\"]"
+                        "cc@example.com"
                     ]
                 },
                 "is_html": {
@@ -733,8 +1004,51 @@ const docTemplate = `{
                         "type": "string"
                     },
                     "example": [
-                        "[\"recipient@example.com\"]"
+                        "recipient@example.com"
                     ]
+                }
+            }
+        },
+        "model.SendEmailResponse": {
+            "type": "object",
+            "properties": {
+                "recipients": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "recipient@example.com"
+                    ]
+                },
+                "sent_at": {
+                    "type": "string",
+                    "example": "2026-10-20T10:00:00Z"
+                },
+                "smtp_config_id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "smtp_name": {
+                    "type": "string",
+                    "example": "Gmail Service"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "SUCCESS"
+                },
+                "subject": {
+                    "type": "string",
+                    "example": "Your verification code"
+                }
+            }
+        },
+        "model.TestConnectionResponse": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "example": "CONNECTED"
                 }
             }
         },
@@ -783,6 +1097,31 @@ const docTemplate = `{
                 }
             }
         },
+        "model.UserResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string",
+                    "example": "2026-10-20T10:00:00Z"
+                },
+                "email": {
+                    "type": "string",
+                    "example": "arjun@example.com"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Arjun Gunawan"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "arjun"
+                }
+            }
+        },
         "response.APIResponse": {
             "type": "object",
             "properties": {
@@ -793,10 +1132,111 @@ const docTemplate = `{
                     "type": "any"
                 },
                 "message": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Operation completed successfully"
                 },
                 "success": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "response.ConflictResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "smtp configuration name already exists"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": false
+                }
+            }
+        },
+        "response.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "name is required"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Invalid request payload or validation error"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": false
+                }
+            }
+        },
+        "response.HealthResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "Service is healthy"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "response.InternalErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "database connection failure"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Internal server error"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": false
+                }
+            }
+        },
+        "response.NotFoundResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "Resource not found"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": false
+                }
+            }
+        },
+        "response.SimpleResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "Operation completed successfully"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "response.UnauthorizedResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "Invalid or missing API authentication credentials"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": false
                 }
             }
         }
@@ -806,9 +1246,18 @@ const docTemplate = `{
             "type": "apiKey",
             "name": "X-API-Key",
             "in": "header"
+        },
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     },
     "tags": [
+        {
+            "description": "User authentication, token renewal, and profile operations",
+            "name": "Auth"
+        },
         {
             "description": "Service health and readiness operations",
             "name": "Health"
@@ -818,7 +1267,7 @@ const docTemplate = `{
             "name": "SMTP Config"
         },
         {
-            "description": "Centralized email dispatch and audit log inspection",
+            "description": "Centralized email dispatch endpoint",
             "name": "Emails"
         }
     ]
@@ -831,7 +1280,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/",
 	Schemes:          []string{"http", "https"},
 	Title:            "Centralized SMTP Email Sender Service",
-	Description:      "Provide secret API Key configured in .env",
+	Description:      "Production-grade centralized SMTP agent and email sending engine.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 }

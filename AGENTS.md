@@ -14,17 +14,17 @@ This document provides system guidelines, architectural rules, and operational b
 - **Documentation**: Swagger / OpenAPI 2.0 (`swaggo/swag`, `swaggo/http-swagger/v2`)
 
 ### Layered Clean Architecture
-Code is strictly organized by concerns following the project structure of `gymmaster-api`. Do not bypass layers:
+Code is strictly organized by concerns. Do not bypass layers:
 ```
 cmd/api/main.go            # Dependency injection, Chi router, server lifecycle & graceful shutdown
 ├── internal/
-│   ├── config/            # Environment variable loading & validation (.env, DSN)
-│   ├── handler/           # HTTP transport, JSON unmarshaling, Swagger annotations, response rendering
-│   ├── middleware/        # Request logging, CORS, strict X-API-Key authentication
-│   ├── service/           # Business logic, validation, fallback orchestration, and mailer interface
+│   ├── config/            # Environment variable loading & validation (.env, DSN, JWT)
+│   ├── handler/           # HTTP transport, JSON unmarshaling, Swagger annotations (auth, health, smtp, email)
+│   ├── middleware/        # Request logging, CORS, API Key and JWT authentication
+│   ├── service/           # Business logic, validation, fallback orchestration, auth, and mailer interface
 │   │   └── mailer/        # RFC 5322 MIME builder, SMTP client (STARTTLS, SSL/TLS, Plain)
-│   ├── repository/        # GORM database queries & transactions (smtp_configs, email_logs)
-│   └── model/             # GORM entities, DTOs, request/response models
+│   ├── repository/        # GORM database queries & transactions (smtp_configs, users)
+│   └── model/             # GORM entities (User, SMTPConfig), DTOs, request/response models
 └── pkg/
     └── response/          # Standardized API response format helpers for Chi (net/http)
 ```
@@ -45,7 +45,7 @@ cmd/api/main.go            # Dependency injection, Chi router, server lifecycle 
   1. If `smtp_config_id` is supplied in the request, the agent resolves that specific configuration (rejecting if inactive).
   2. If omitted, the agent resolves the system default active configuration.
   3. If no active configuration exists, the agent returns a clear error.
-- **Audit Logging**: Every send attempt MUST be logged in the `email_logs` table with delivery status (`SUCCESS` or `FAILED`), timestamp, recipient, subject, and error message if any.
+- **Structured Observability**: Every send attempt is emitted to `stdout` via standard Go `log/slog` in JSON format (`event=email_dispatch`, `status=SUCCESS/FAILED`, duration, recipient, subject, error details), eliminating table bloat and write lock contention in MySQL.
 
 ---
 

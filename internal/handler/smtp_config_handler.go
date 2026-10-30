@@ -28,12 +28,13 @@ func NewSMTPConfigHandler(service service.SMTPConfigService) *SMTPConfigHandler 
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
+// @Security BearerAuth
 // @Param payload body model.CreateSMTPConfigRequest true "SMTP configuration payload"
-// @Success 201 {object} response.APIResponse "SMTP configuration created successfully"
-// @Failure 400 {object} response.APIResponse "Invalid request payload"
-// @Failure 401 {object} response.APIResponse "Unauthorized"
-// @Failure 409 {object} response.APIResponse "Configuration name already exists"
-// @Failure 500 {object} response.APIResponse "Internal server error"
+// @Success 201 {object} response.APIResponse{data=model.SMTPConfigResponse} "SMTP configuration created successfully"
+// @Failure 400 {object} response.ErrorResponse "Invalid request payload or validation error"
+// @Failure 401 {object} response.UnauthorizedResponse "Invalid or missing API authentication credentials"
+// @Failure 409 {object} response.ConflictResponse "Configuration name already exists"
+// @Failure 500 {object} response.InternalErrorResponse "Internal server error"
 // @Router /api/v1/smtp-configs [post]
 func (h *SMTPConfigHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req model.CreateSMTPConfigRequest
@@ -61,9 +62,10 @@ func (h *SMTPConfigHandler) Create(w http.ResponseWriter, r *http.Request) {
 // @Tags SMTP Config
 // @Produce json
 // @Security ApiKeyAuth
-// @Success 200 {object} response.APIResponse "List of SMTP configurations"
-// @Failure 401 {object} response.APIResponse "Unauthorized"
-// @Failure 500 {object} response.APIResponse "Internal server error"
+// @Security BearerAuth
+// @Success 200 {object} response.APIResponse{data=[]model.SMTPConfigResponse} "List of SMTP configurations"
+// @Failure 401 {object} response.UnauthorizedResponse "Invalid or missing API authentication credentials"
+// @Failure 500 {object} response.InternalErrorResponse "Internal server error"
 // @Router /api/v1/smtp-configs [get]
 func (h *SMTPConfigHandler) List(w http.ResponseWriter, r *http.Request) {
 	configs, err := h.service.FindAll(r.Context())
@@ -81,12 +83,13 @@ func (h *SMTPConfigHandler) List(w http.ResponseWriter, r *http.Request) {
 // @Tags SMTP Config
 // @Produce json
 // @Security ApiKeyAuth
+// @Security BearerAuth
 // @Param id path int true "SMTP Config ID"
-// @Success 200 {object} response.APIResponse "SMTP configuration details"
-// @Failure 400 {object} response.APIResponse "Invalid ID format"
-// @Failure 401 {object} response.APIResponse "Unauthorized"
-// @Failure 404 {object} response.APIResponse "Configuration not found"
-// @Failure 500 {object} response.APIResponse "Internal server error"
+// @Success 200 {object} response.APIResponse{data=model.SMTPConfigResponse} "SMTP configuration details"
+// @Failure 400 {object} response.ErrorResponse "Invalid ID format"
+// @Failure 401 {object} response.UnauthorizedResponse "Invalid or missing API authentication credentials"
+// @Failure 404 {object} response.NotFoundResponse "Configuration not found"
+// @Failure 500 {object} response.InternalErrorResponse "Internal server error"
 // @Router /api/v1/smtp-configs/{id} [get]
 func (h *SMTPConfigHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r)
@@ -115,14 +118,15 @@ func (h *SMTPConfigHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
+// @Security BearerAuth
 // @Param id path int true "SMTP Config ID"
 // @Param payload body model.UpdateSMTPConfigRequest true "Update payload"
-// @Success 200 {object} response.APIResponse "SMTP configuration updated successfully"
-// @Failure 400 {object} response.APIResponse "Invalid input data"
-// @Failure 401 {object} response.APIResponse "Unauthorized"
-// @Failure 404 {object} response.APIResponse "Configuration not found"
-// @Failure 409 {object} response.APIResponse "Configuration name conflict"
-// @Failure 500 {object} response.APIResponse "Internal server error"
+// @Success 200 {object} response.APIResponse{data=model.SMTPConfigResponse} "SMTP configuration updated successfully"
+// @Failure 400 {object} response.ErrorResponse "Invalid input data or validation error"
+// @Failure 401 {object} response.UnauthorizedResponse "Invalid or missing API authentication credentials"
+// @Failure 404 {object} response.NotFoundResponse "Configuration not found"
+// @Failure 409 {object} response.ConflictResponse "Configuration name conflict"
+// @Failure 500 {object} response.InternalErrorResponse "Internal server error"
 // @Router /api/v1/smtp-configs/{id} [put]
 func (h *SMTPConfigHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r)
@@ -160,12 +164,13 @@ func (h *SMTPConfigHandler) Update(w http.ResponseWriter, r *http.Request) {
 // @Tags SMTP Config
 // @Produce json
 // @Security ApiKeyAuth
+// @Security BearerAuth
 // @Param id path int true "SMTP Config ID"
-// @Success 200 {object} response.APIResponse "SMTP configuration deleted"
-// @Failure 400 {object} response.APIResponse "Invalid ID format"
-// @Failure 401 {object} response.APIResponse "Unauthorized"
-// @Failure 404 {object} response.APIResponse "Configuration not found"
-// @Failure 500 {object} response.APIResponse "Internal server error"
+// @Success 200 {object} response.SimpleResponse "SMTP configuration deleted"
+// @Failure 400 {object} response.ErrorResponse "Invalid ID format"
+// @Failure 401 {object} response.UnauthorizedResponse "Invalid or missing API authentication credentials"
+// @Failure 404 {object} response.NotFoundResponse "Configuration not found"
+// @Failure 500 {object} response.InternalErrorResponse "Internal server error"
 // @Router /api/v1/smtp-configs/{id} [delete]
 func (h *SMTPConfigHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r)
@@ -192,12 +197,13 @@ func (h *SMTPConfigHandler) Delete(w http.ResponseWriter, r *http.Request) {
 // @Tags SMTP Config
 // @Produce json
 // @Security ApiKeyAuth
+// @Security BearerAuth
 // @Param id path int true "SMTP Config ID"
-// @Success 200 {object} response.APIResponse "Configuration set as default"
-// @Failure 400 {object} response.APIResponse "Invalid ID"
-// @Failure 401 {object} response.APIResponse "Unauthorized"
-// @Failure 404 {object} response.APIResponse "Configuration not found"
-// @Failure 500 {object} response.APIResponse "Internal server error"
+// @Success 200 {object} response.SimpleResponse "Configuration set as default"
+// @Failure 400 {object} response.ErrorResponse "Invalid ID"
+// @Failure 401 {object} response.UnauthorizedResponse "Invalid or missing API authentication credentials"
+// @Failure 404 {object} response.NotFoundResponse "Configuration not found"
+// @Failure 500 {object} response.InternalErrorResponse "Internal server error"
 // @Router /api/v1/smtp-configs/{id}/default [put]
 func (h *SMTPConfigHandler) SetDefault(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r)
@@ -224,11 +230,13 @@ func (h *SMTPConfigHandler) SetDefault(w http.ResponseWriter, r *http.Request) {
 // @Tags SMTP Config
 // @Produce json
 // @Security ApiKeyAuth
+// @Security BearerAuth
 // @Param id path int true "SMTP Config ID"
-// @Success 200 {object} response.APIResponse "SMTP connection successful"
-// @Failure 400 {object} response.APIResponse "Invalid ID or SMTP handshake failure"
-// @Failure 401 {object} response.APIResponse "Unauthorized"
-// @Failure 404 {object} response.APIResponse "Configuration not found"
+// @Success 200 {object} response.APIResponse{data=model.TestConnectionResponse} "SMTP connection successful"
+// @Failure 400 {object} response.ErrorResponse "Invalid ID or SMTP handshake failure"
+// @Failure 401 {object} response.UnauthorizedResponse "Invalid or missing API authentication credentials"
+// @Failure 404 {object} response.NotFoundResponse "Configuration not found"
+// @Failure 500 {object} response.InternalErrorResponse "Internal server error"
 // @Router /api/v1/smtp-configs/{id}/test [post]
 func (h *SMTPConfigHandler) TestConnection(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r)

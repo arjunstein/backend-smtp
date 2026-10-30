@@ -7,10 +7,54 @@ import (
 
 // APIResponse represents standard uniform HTTP response envelope.
 type APIResponse struct {
-	Success bool   `json:"success"`
-	Message string `json:"message"`
+	Success bool   `json:"success" example:"true"`
+	Message string `json:"message" example:"Operation completed successfully"`
 	Data    any    `json:"data,omitempty"`
 	Error   any    `json:"error,omitempty"`
+}
+
+// HealthResponse represents 200 OK health check response envelope for Swagger.
+type HealthResponse struct {
+	Success bool   `json:"success" example:"true"`
+	Message string `json:"message" example:"Service is healthy"`
+}
+
+// SimpleResponse represents 200 OK simple success message envelope without data payload.
+type SimpleResponse struct {
+	Success bool   `json:"success" example:"true"`
+	Message string `json:"message" example:"Operation completed successfully"`
+}
+
+// ErrorResponse represents 400 Bad Request error response envelope for Swagger.
+type ErrorResponse struct {
+	Success bool   `json:"success" example:"false"`
+	Message string `json:"message" example:"Invalid request payload or validation error"`
+	Error   string `json:"error,omitempty" example:"name is required"`
+}
+
+// UnauthorizedResponse represents 401 Unauthorized error response envelope for Swagger.
+type UnauthorizedResponse struct {
+	Success bool   `json:"success" example:"false"`
+	Message string `json:"message" example:"Invalid or missing API authentication credentials"`
+}
+
+// NotFoundResponse represents 404 Not Found error response envelope for Swagger.
+type NotFoundResponse struct {
+	Success bool   `json:"success" example:"false"`
+	Message string `json:"message" example:"Resource not found"`
+}
+
+// ConflictResponse represents 409 Conflict error response envelope for Swagger.
+type ConflictResponse struct {
+	Success bool   `json:"success" example:"false"`
+	Message string `json:"message" example:"smtp configuration name already exists"`
+}
+
+// InternalErrorResponse represents 500 Internal Server Error response envelope for Swagger.
+type InternalErrorResponse struct {
+	Success bool   `json:"success" example:"false"`
+	Message string `json:"message" example:"Internal server error"`
+	Error   string `json:"error,omitempty" example:"database connection failure"`
 }
 
 // JSON writes standard JSON response to http.ResponseWriter.
